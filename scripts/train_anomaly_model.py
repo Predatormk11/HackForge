@@ -27,12 +27,16 @@ def train_anomaly_model(
     print(f"Loading training data from {data_csv}...")
     df = pd.read_csv(data_csv)
 
-    # Train IsolationForest on all historical records (or predominantly legitimate records)
-    feature_engineer = FeatureEngineer()
     print("Extracting feature matrix for Isolation Forest...")
-    X = feature_engineer.transform_dataframe(df)
+    missing_features = [col for col in FEATURE_COLUMNS if col not in df.columns]
+    if missing_features:
+        feature_engineer = FeatureEngineer()
+        X = feature_engineer.transform_dataframe(df)
+    else:
+        print("Features already present in dataset. Bypassing FeatureEngineer...")
+        X = df[FEATURE_COLUMNS]
 
-    detector = AnomalyDetector(model_path=model_output, contamination=0.08)
+    detector = AnomalyDetector(model_path=model_output)
     detector.train(X)
 
     saved_path = detector.save(model_output)

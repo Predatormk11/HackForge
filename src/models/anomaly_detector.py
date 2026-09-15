@@ -1,10 +1,11 @@
-"""Unsupervised Isolation Forest anomaly detection model."""
+"""Unsupervised Isolation Forest anomaly detection model with statistical calibration."""
 import os
 from typing import Optional, Union
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 from src.features.feature_engineering import FEATURE_COLUMNS
 
@@ -15,7 +16,7 @@ class AnomalyDetector:
     def __init__(
         self,
         n_estimators: int = 100,
-        contamination: float = 0.05,
+        contamination: Union[float, str] = "auto",
         random_state: int = 42,
         model_path: Optional[str] = None,
     ):
@@ -23,7 +24,7 @@ class AnomalyDetector:
 
         Args:
             n_estimators: Number of isolation trees.
-            contamination: Expected proportion of outliers in the training data.
+            contamination: Expected proportion of outliers in the training data, or "auto".
             random_state: Random seed.
             model_path: Optional path to serialized model file.
         """
@@ -32,6 +33,8 @@ class AnomalyDetector:
         self.random_state = random_state
         self.model_path = model_path or "models/anomaly_model.pkl"
         self.model: Optional[IsolationForest] = None
+        self.feature_scaler: Optional[StandardScaler] = None
+        self.score_scaler: Optional[MinMaxScaler] = None
         self.is_fitted: bool = False
 
         if model_path and os.path.exists(model_path):
@@ -46,12 +49,27 @@ class AnomalyDetector:
         Returns:
             self
         """
+        # 1. Scale Features
+        self.feature_scaler = StandardScaler()
+        X_scaled = self.feature_scaler.fit_transform(X)
+
+        # 2. Train Isolation Forest
         self.model = IsolationForest(
             n_estimators=self.n_estimators,
             contamination=self.contamination,
             random_state=self.random_state,
         )
-        self.model.fit(X)
+        self.model.fit(X_scaled)
+        
+        # 3. Fit Score Calibration
+        # decision_function yields lower (negative) values for anomalies, positive for normal inliers
+        raw_scores = self.model.decision_function(X_scaled)
+        # Invert scores so higher means more anomalous
+        inverted_scores = -raw_scores.reshape(-1, 1)
+        
+        self.score_scaler = MinMaxScaler(feature_range=(0, 1))
+        self.score_scaler.fit(inverted_scores)
+
         self.is_fitted = True
         return self
 
@@ -64,7 +82,7 @@ class AnomalyDetector:
         Returns:
             Normalized anomaly score in [0.0, 1.0].
         """
-        if not self.is_fitted or self.model is None:
+        if not self.is_fitted or self.model is None or self.feature_scaler is None or self.score_scaler is None:
             return 0.10
 
         if isinstance(features, pd.DataFrame):
@@ -72,15 +90,16 @@ class AnomalyDetector:
             if len(cols) == len(FEATURE_COLUMNS):
                 features = features[FEATURE_COLUMNS]
 
-        # decision_function yields lower (negative) values for anomalies, positive for normal inliers
-        raw_score = float(self.model.decision_function(features)[0])
-
-        # Calibrate & normalize: raw ~ 0.2 (normal) -> 0.0, raw ~ -0.2 (anomaly) -> 1.0
-        normalized_score = (0.20 - raw_score) / 0.40
+        X_scaled = self.feature_scaler.transform(features)
+        
+        raw_score = self.model.decision_function(X_scaled)
+        inverted_score = -raw_score.reshape(-1, 1)
+        
+        normalized_score = self.score_scaler.transform(inverted_score)[0, 0]
         return float(np.clip(normalized_score, 0.0, 1.0))
 
     def save(self, path: Optional[str] = None) -> str:
-        """Serialize and save model to disk.
+        """Serialize and save model (and scalers) to disk.
 
         Args:
             path: Destination file path.
@@ -90,7 +109,8 @@ class AnomalyDetector:
         """
         save_path = path or self.model_path
         os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
-        joblib.dump(self.model, save_path)
+        # joblib naturally serializes the entire class instance including the scalers
+        joblib.dump(self, save_path)
         return save_path
 
     def load(self, path: Optional[str] = None) -> "AnomalyDetector":
@@ -105,6 +125,14 @@ class AnomalyDetector:
         load_path = path or self.model_path
         if not os.path.exists(load_path):
             raise FileNotFoundError(f"Anomaly model not found at {load_path}")
-        self.model = joblib.load(load_path)
+        
+        loaded_instance = joblib.load(load_path)
+        
+        self.model = loaded_instance.model
+        self.feature_scaler = loaded_instance.feature_scaler
+        self.score_scaler = loaded_instance.score_scaler
+        self.contamination = loaded_instance.contamination
+        self.n_estimators = loaded_instance.n_estimators
+        
         self.is_fitted = True
         return self

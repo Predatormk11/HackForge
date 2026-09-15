@@ -1,36 +1,38 @@
-"""Supervised Random Forest fraud classification model."""
+"""Supervised Gradient Boosting fraud classification model."""
 import os
 from typing import Optional, Union
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 
 from src.features.feature_engineering import FEATURE_COLUMNS
 
 
 class FraudClassifier:
-    """Random Forest classifier for estimating transaction fraud probability."""
+    """HistGradientBoosting classifier for estimating transaction fraud probability."""
 
-    def __init__(self, n_estimators: int = 100, random_state: int = 42, model_path: Optional[str] = None):
+    def __init__(self, learning_rate: float = 0.1, max_iter: int = 100, random_state: int = 42, model_path: Optional[str] = None):
         """Initialize the fraud classifier.
 
         Args:
-            n_estimators: Number of trees in the forest.
+            learning_rate: Learning rate of the boosting process.
+            max_iter: Maximum number of iterations of the boosting process.
             random_state: Seed for reproducibility.
             model_path: Optional path to load a pre-trained model.
         """
-        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.max_iter = max_iter
         self.random_state = random_state
         self.model_path = model_path or "models/fraud_model.pkl"
-        self.model: Optional[RandomForestClassifier] = None
+        self.model: Optional[HistGradientBoostingClassifier] = None
         self.is_fitted: bool = False
 
         if model_path and os.path.exists(model_path):
             self.load(model_path)
 
     def train(self, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.Series, np.ndarray]) -> "FraudClassifier":
-        """Train the RandomForestClassifier on feature matrix X and target y.
+        """Train the HistGradientBoostingClassifier on feature matrix X and target y.
 
         Args:
             X: Feature matrix with shape (n_samples, n_features).
@@ -39,12 +41,10 @@ class FraudClassifier:
         Returns:
             self
         """
-        self.model = RandomForestClassifier(
-            n_estimators=self.n_estimators,
+        self.model = HistGradientBoostingClassifier(
+            learning_rate=self.learning_rate,
+            max_iter=self.max_iter,
             random_state=self.random_state,
-            max_depth=10,
-            min_samples_split=5,
-            class_weight="balanced",
         )
         self.model.fit(X, y)
         self.is_fitted = True
