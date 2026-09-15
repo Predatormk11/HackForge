@@ -1,0 +1,32 @@
+# Fraud Detection & Transaction Risk Agent Configuration
+
+risk:
+  fraud_weight: 0.60
+  anomaly_weight: 0.25
+  rule_weight: 0.15
+
+thresholds:
+  low: 0.30
+  medium: 0.70
+  high: 0.90
+
+rules:
+  high_amount_multiplier: 3.0
+  high_amount_absolute_minimum: 1000.0
+  unusual_hours: [0, 1, 2, 3, 4, 5]
+  high_velocity_threshold: 5
+  failed_attempts_threshold: 3
+  weights:
+    HIGH_AMOUNT_DEVIATION: 0.25
+    NEW_DEVICE: 0.15
+    UNUSUAL_TIME: 0.10
+    HIGH_TRANSACTION_VELOCITY: 0.20
+    NEW_MERCHANT: 0.10
+    LOCATION_DEVIATION: 0.10
+    MULTIPLE_FAILED_ATTEMPTS: 0.10
+
+models:
+  fraud_model_path: "models/fraud_model.pkl"
+  anomaly_model_path: "models/anomaly_model.pkl"
+  n_estimators: 100
+  random_state: 42

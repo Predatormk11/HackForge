@@ -1,0 +1,74 @@
+{
+  "scenario_1_normal": {
+    "name": "Scenario 1: Legitimate Everyday Purchase",
+    "description": "Routine $45.00 grocery purchase from a known device and recognized merchant during standard afternoon hours with zero failed attempts.",
+    "expected_level": "LOW",
+    "expected_action": "APPROVE",
+    "data": {
+      "transaction_id": "TX_DEMO_001",
+      "user_id": "USR_ALICE_101",
+      "amount": 45.0,
+      "transaction_type": "PURCHASE",
+      "timestamp": "2026-09-15T14:30:00",
+      "merchant_id": "MERCH_GROCERY_042",
+      "device_id": "DEV_IPHONE_14_A",
+      "location": "Seattle, US",
+      "account_age_days": 420,
+      "previous_transaction_count": 85,
+      "previous_average_amount": 52.0,
+      "failed_attempts": 0,
+      "previous_device_known": true,
+      "previous_merchant_known": true,
+      "transactions_last_24h": 1,
+      "is_location_consistent": true
+    }
+  },
+  "scenario_2_suspicious": {
+    "name": "Scenario 2: Suspicious New Device & High Value",
+    "description": "Uncharacteristic $850.00 electronics purchase from an unrecognized device at 3:15 AM with an unfamiliar merchant.",
+    "expected_level": "MEDIUM",
+    "expected_action": "ADDITIONAL_VERIFICATION",
+    "data": {
+      "transaction_id": "TX_DEMO_002",
+      "user_id": "USR_BOB_202",
+      "amount": 850.0,
+      "transaction_type": "PURCHASE",
+      "timestamp": "2026-09-15T03:15:00",
+      "merchant_id": "MERCH_LUXURY_999",
+      "device_id": "DEV_UNRECOGNIZED_X1",
+      "location": "Chicago, US",
+      "account_age_days": 180,
+      "previous_transaction_count": 40,
+      "previous_average_amount": 95.0,
+      "failed_attempts": 1,
+      "previous_device_known": false,
+      "previous_merchant_known": false,
+      "transactions_last_24h": 3,
+      "is_location_consistent": true
+    }
+  },
+  "scenario_3_critical": {
+    "name": "Scenario 3: Highly Suspicious Account Takeover & Rapid Drain",
+    "description": "Extreme $4,950.00 wire transfer from an unrecognized foreign IP proxy at 2:45 AM following 4 failed password attempts and burst transaction velocity.",
+    "expected_level": "CRITICAL",
+    "expected_action": "BLOCK_AND_INVESTIGATE",
+    "data": {
+      "transaction_id": "TX_DEMO_003",
+      "user_id": "USR_CHARLIE_303",
+      "amount": 4950.0,
+      "transaction_type": "TRANSFER",
+      "timestamp": "2026-09-15T02:45:00",
+      "merchant_id": "MERCH_CRYPTO_OFFSHORE",
+      "device_id": "DEV_TOR_EXIT_NODE_9",
+      "location": "Unknown_Proxy_Lagos",
+      "account_age_days": 15,
+      "previous_transaction_count": 3,
+      "previous_average_amount": 60.0,
+      "failed_attempts": 4,
+      "previous_device_known": false,
+      "previous_merchant_known": false,
+      "transactions_last_24h": 8,
+      "is_location_consistent": false
+    }
+  }
+}
